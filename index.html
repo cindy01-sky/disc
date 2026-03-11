@@ -1,13 +1,218 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DISC 個人行為模式分析</title>
+    <!-- 引入 Google Fonts: Playfair Display (標題) 與 Noto Sans TC (內文) -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Noto+Sans+TC:wght@300;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        :root {
+            --cream-white: #F9F6F1;
+            --light-coffee: #D7C4B7;
+            --chanel-black: #1A1A1A;
+        }
+        body {
+            background-color: var(--cream-white);
+            font-family: 'Noto Sans TC', sans-serif;
+            color: var(--chanel-black);
+            -webkit-font-smoothing: antialiased;
+        }
+        .serif {
+            font-family: 'Playfair Display', serif;
+        }
+        /* 淺咖啡色按鈕設計 */
+        .btn-coffee {
+            background-color: var(--light-coffee);
+            color: var(--chanel-black);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-coffee:active {
+            filter: brightness(0.9);
+            transform: scale(0.98);
+        }
+        /* 小香風精品卡片 */
+        .chanel-card {
+            border: 1px solid rgba(26, 26, 26, 0.1);
+            background-color: white;
+            box-shadow: 0 10px 30px -15px rgba(0,0,0,0.05);
+        }
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.5s ease;
+        }
+        .fade-enter-from, .fade-leave-to {
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="max-w-md mx-auto min-h-screen p-6 flex flex-col">
+        
+        <!-- 頂部標題 -->
+        <header class="text-center mt-8 mb-12">
+            <h1 class="serif text-4xl tracking-[0.25em] uppercase">Insight</h1>
+            <div class="h-[1px] w-12 bg-stone-800 mx-auto mt-4"></div>
+            <p class="text-[9px] tracking-[0.4em] uppercase mt-4 text-stone-400 font-light">Sophisticated Analysis</p>
+        </header>
+
+        <main class="flex-grow flex flex-col justify-center">
+            
+            <!-- 1. 歡迎畫面 -->
+            <transition name="fade" mode="out-in">
+                <div v-if="state === 'start'" key="start" class="text-center">
+                    <h2 class="text-xl font-light tracking-widest mb-6">個人行為模式分析</h2>
+                    <p class="text-[11px] text-stone-400 leading-loose mb-10 px-6 uppercase tracking-widest">
+                        20 Questions to Discover Your Archetype
+                    </p>
+                    <button @click="state = 'quiz'" class="w-full py-4 border border-stone-800 text-[11px] tracking-[0.5em] uppercase hover:bg-stone-900 hover:text-white transition-all duration-500">
+                        Begin Journey
+                    </button>
+                </div>
+
+                <!-- 2. 測驗階段 -->
+                <div v-else-if="state === 'quiz'" key="quiz" class="w-full">
+                    <div class="mb-10">
+                        <div class="flex justify-between items-end mb-4">
+                            <span class="serif text-3xl font-light">{{ currentIndex + 1 }}</span>
+                            <span class="text-[9px] tracking-[0.2em] text-stone-400 uppercase">Question of 20</span>
+                        </div>
+                        <div class="w-full h-[1px] bg-stone-200">
+                            <div class="h-[1px] bg-stone-800 transition-all duration-700" :style="{ width: progress + '%' }"></div>
+                        </div>
+                        <h3 class="mt-8 text-lg font-medium leading-relaxed tracking-tight text-stone-700">
+                            {{ currentQuestion.title }}
+                        </h3>
+                    </div>
+
+                    <div class="space-y-4">
+                        <button v-for="(optText, key) in currentQuestion.options" 
+                            :key="key"
+                            @click="nextQuestion(key)"
+                            class="btn-coffee w-full text-left p-5 text-sm tracking-wide rounded-sm shadow-sm flex justify-between items-center group">
+                            <span>{{ optText }}</span>
+                            <span class="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] serif">Select</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. 結果畫面 -->
+                <div v-else-if="state === 'result'" key="result" class="flex flex-col animate-in fade-in duration-1000">
+                    <div class="chanel-card p-10 text-center relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-stone-800"></div>
+                        <h4 class="text-[10px] tracking-[0.4em] uppercase text-stone-400 mb-6">Your Archetype Report</h4>
+                        
+                        <div class="serif text-4xl mb-2 text-stone-900">{{ analysis[topType].animal }}</div>
+                        <div class="text-[11px] tracking-[0.3em] text-stone-400 mb-8 uppercase italic">{{ analysis[topType].feature }}</div>
+                        
+                        <p class="text-xs leading-loose text-stone-500 text-left border-t border-stone-50 pt-8 mb-8">
+                            {{ analysis[topType].desc }}
+                        </p>
+
+                        <!-- 分數圖表 -->
+                        <div class="space-y-5">
+                            <div v-for="res in sortedResults" :key="res.key" class="flex items-center text-[10px] tracking-widest">
+                                <span class="w-8 text-left font-bold text-stone-800">{{ res.key }}</span>
+                                <div class="flex-grow h-[1px] bg-stone-100 mx-4 relative">
+                                    <div class="h-[1px] bg-stone-800 transition-all duration-1000 delay-300" :style="{ width: (res.score/20*100) + '%' }"></div>
+                                </div>
+                                <span class="w-4 text-right text-stone-400">{{ res.score }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Line 分享按鈕 -->
+                    <button @click="sendToLine" class="mt-10 py-5 bg-stone-900 text-white text-[11px] tracking-[0.4em] uppercase active:scale-[0.98] transition-all shadow-xl flex items-center justify-center gap-2">
+                        <span>Share Results via Line</span>
+                    </button>
+                    
+                    <button @click="reset" class="mt-6 text-[10px] tracking-[0.5em] uppercase text-stone-300 self-center border-b border-transparent hover:border-stone-200 transition-all">
+                        Restart Test
+                    </button>
+                </div>
+            </transition>
+        </main>
+
+        <!-- 頁尾 -->
+        <footer class="mt-12 mb-6 text-center">
+            <p class="text-[9px] text-stone-300 tracking-[0.3em] uppercase">Sophisticated Behavioral Analysis © 2026</p>
+        </footer>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        createApp({
+            data() {
+                return {
+                    state: 'start',
+                    currentIndex: 0,
+                    scores: { D: 0, I: 0, S: 0, C: 0 },
+                    analysis: {
+                        D: { animal: "Dominance", feature: "卓越老虎", desc: "您展現出極強的決斷力與目標感。在壓力下依然能保持冷靜且迅速行動，是天生的領導者與開拓者，追求效率並勇於接受各項艱巨挑戰。" },
+                        I: { animal: "Influence", feature: "魅力孔雀", desc: "您擁有動人的感染力與社交天賦。擅長與人建立連結，並能用樂觀積極的態度啟發團隊，在充滿歡樂與創意的環境中，您能發揮最大的光芒。" },
+                        S: { animal: "Steadiness", feature: "和諧無尾熊", desc: "您是穩定且體貼的守護者，展現出無與倫比的耐心與同理心。穩定、可靠且真誠，是團隊中最堅強的支柱，能在混亂中維持和平與秩序。" },
+                        C: { animal: "Compliance", feature: "智慧貓頭鷹", desc: "您追求精確與邏輯，凡事皆有條不紊。具備深度的分析能力與對品質絕不妥協的堅持，在處理數據與專業細節時，能展現出令人信服的權威感。" }
+                    },
+                    questions: [
+                        { title: "朋友認為您是一個...", options: { D: "自信十足，霸氣十足的人", I: "熱心、樂於助人、受歡迎的人", S: "和藹可親、不與人爭的人", C: "有條不紊的完美主義者" } },
+                        { title: "在團體活動中，您傾向...", options: { D: "勇於接受挑戰，敢於冒險", I: "展現樂觀、熱情與活力", S: "保持溫和謙和，安靜聆聽", C: "冷靜思考，採取謹慎行動" } },
+                        { title: "什麼樣的環境能鼓舞您？", options: { D: "具領導地位，能決定重要事項", I: "同事相處愉快，頗受歡迎", S: "在穩定中求發展，節奏固定", C: "講求品質、重視效率與精確" } },
+                        { title: "在壓力下，您最擔憂的是...", options: { D: "被他人利用或失去掌控", I: "失去社交圈的認同與接納", S: "面對衝突與巨大的環境改變", C: "遭受批評或處理不精確的事務" } },
+                        { title: "做決策時，您的風格是...", options: { D: "直接了當，「我決定就行了」", I: "顧及感受，「大家開心最重要」", S: "配合大家，「我沒意見，隨大家」", C: "理智分析，「再研究比較一下數據」" } },
+                        { title: "在團隊合作中，您扮演的角色是...", options: { D: "重實際、有膽識，追求成果", I: "惹人注目、充滿精力與創意", S: "忠實的聽眾，默默支持夥伴", C: "分析所有提案，確保合乎邏輯" } },
+                        { title: "意見分歧時，您通常會...", options: { D: "強烈表達觀點，主導局勢", I: "積極溝通，嘗試協調與說服", S: "隨遇而安，容易讓步避免衝突", C: "保持冷靜，找尋事實依據辯論" } },
+                        { title: "購物時，您的決策模式是...", options: { D: "心中已有定見，快速購買", I: "受店員態度或當下心情影響", S: "傾向在熟悉的店家或品牌購買", C: "仔細比價，考量品質與功能比例" } },
+                        { title: "處理事情最核心的考量是...", options: { D: "結果與效率 (What)", I: "人的感受與共鳴 (Who)", S: "執行過程的穩定 (How)", C: "背後的道理與正確性 (Why)" } },
+                        { title: "哪一項最符合您的溝通特點？", options: { D: "注重效率、數字與客觀證據", I: "重感覺、看心情、重視人脈關係", S: "溫和地表達，不希望引起衝突", C: "冷靜且愛分析，理多於情" } },
+                        { title: "面對全新領域的學習，您會...", options: { D: "直接行動，從實踐中修正", I: "找伴共學，在互動中吸收", S: "需要清晰的指導與明確步驟", C: "先研讀完整的資料與說明書" } },
+                        { title: "對於生活的理想節奏是...", options: { D: "充滿競爭、具備成就感的快節奏", I: "充滿驚喜、多采多姿的流動節奏", S: "安靜穩定、具有安全感的慢節奏", C: "精確安排、一切盡在掌控的節奏" } },
+                        { title: "您的時間觀念通常表現為...", options: { D: "時間即成就，不容許浪費", I: "常因為投入有趣事物而忘了時間", S: "不喜歡被催促，照自己的節奏走", C: "嚴格安排，甚至提前規劃所有細節" } },
+                        { title: "別人對您的第一印象通常是...", options: { D: "果斷、有威嚴的領袖", I: "風趣、熱情的交際好手", S: "可靠、體貼的親切夥伴", C: "冷靜、理性的專業職人" } },
+                        { title: "當問題發生時，您的反應是...", options: { D: "迅速切入核心，立即解決", I: "尋求共識，希望大家一起思考", S: "循序漸進，確保每個細節都妥當", C: "深思熟慮，找出最精確的源頭" } },
+                        { title: "您在組織中的理想定位是...", options: { D: "開疆闢土的指揮官", I: "凝聚士氣的啦啦隊", S: "守護和諧的後勤者", C: "確保品質的糾察官" } },
+                        { title: "您的服裝與形象風格...", options: { D: "俐落專業，展現自信氣勢", I: "時尚亮眼，隨心情變換流行", S: "舒適自然，給人溫暖親切感", C: "整齊細緻，展現對品質的追求" } },
+                        { title: "當您身心疲累時，如何充電？", options: { D: "尋求勝負感的運動或挑戰", I: "參與社交活動，與人交流能量", S: "待在安靜環境，享受沈穩時光", C: "整理個人空間或鑽研興趣愛好" } },
+                        { title: "您最核心的人生動機是...", options: { D: "成就感與對環境的掌控權", I: "獲得他人的讚賞與心理認同", S: "維持生活的平和與關係和諧", C: "達成知識的正確性與極致完美" } },
+                        { title: "面對突發衝突，您的反應是...", options: { D: "迎頭應戰，爭論是非對錯", I: "用幽默化解，轉移尷尬焦點", S: "先避開現場，沈澱情緒後再說", C: "擺出數據與邏輯，據理力爭" } }
+                    ]
+                }
+            },
+            computed: {
+                currentQuestion() { return this.questions[this.currentIndex]; },
+                progress() { return Math.round((this.currentIndex / this.questions.length) * 100); },
+                sortedResults() {
+                    return Object.keys(this.scores)
+                        .map(key => ({ key, score: this.scores[key] }))
+                        .sort((a, b) => b.score - a.score);
+                },
+                topType() { return this.sortedResults[0].key; }
+            },
+            methods: {
+                nextQuestion(type) {
+                    this.scores[type]++;
+                    if (this.currentIndex < this.questions.length - 1) {
+                        this.currentIndex++;
+                    } else {
+                        this.state = 'result';
+                    }
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                },
+                sendToLine() {
+                    const msg = `【DISC 性格分析報告】\n\n核心特質：${this.analysis[this.topType].animal}\n關鍵特點：${this.analysis[this.topType].feature}\n\n分數詳細分佈：\n- D (支配型): ${this.scores.D}\n- I (影響型): ${this.scores.I}\n- S (穩定型): ${this.scores.S}\n- C (謹慎型): ${this.scores.C}\n\n分析日期：${new Date().toLocaleDateString()}\n期待與您進一步探討。`;
+                    const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(msg)}`;
+                    window.open(lineUrl, '_blank');
+                },
+                reset() {
+                    this.state = 'start';
+                    this.currentIndex = 0;
+                    this.scores = { D: 0, I: 0, S: 0, C: 0 };
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
 </html>
 
